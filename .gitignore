@@ -2,3 +2,7 @@ __pycache__/
 *.pyc
 .env
 config.py
+smartcart.db
+migrate.py
+migrate_mysql_to_sqlite.py
+test_app.py

@@ -52,9 +52,24 @@ mail = Mail(app)
 
 
 # ------------------- DATABASE CONNECTION & INIT -------------------
+def dict_factory(cursor, row):
+    fields = [column[0] for column in cursor.description]
+    result = {}
+    for idx, (key, value) in enumerate(zip(fields, row)):
+        if key == 'created_at' and isinstance(value, str):
+            try:
+                value = datetime.datetime.fromisoformat(value)
+            except Exception:
+                try:
+                    value = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+                except Exception:
+                    pass
+        result[key] = value
+    return result
+
 def get_connection():
     conn = sqlite3.connect("smartcart.db")
-    conn.row_factory = sqlite3.Row
+    conn.row_factory = dict_factory
     return conn
 
 # Alias for backward compatibility
@@ -65,12 +80,12 @@ def init_db():
         conn = get_connection()
         cursor = conn.cursor()
 
-        with open("schema.sql", "r", encoding="utf-8") as file:
-            schema = file.read()
+        if os.path.exists("schema.sql"):
+            with open("schema.sql", "r", encoding="utf-8") as file:
+                schema = file.read()
+            cursor.executescript(schema)
+            conn.commit()
 
-        cursor.executescript(schema)
-
-        conn.commit()
         cursor.close()
         conn.close()
 
@@ -277,7 +292,7 @@ def index():
 
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
         cursor.execute("SELECT DISTINCT category FROM products WHERE category IS NOT NULL AND category != '' ORDER BY category ASC")
         categories = cursor.fetchall()
@@ -286,11 +301,11 @@ def index():
         params = []
 
         if search:
-            query += " AND (name LIKE %s OR description LIKE %s)"
+            query += " AND (name LIKE ? OR description LIKE ?)"
             params.extend(["%" + search + "%", "%" + search + "%"])
 
         if category_filter:
-            query += " AND category = %s"
+            query += " AND category = ?"
             params.append(category_filter)
 
         query += " ORDER BY product_id DESC"
@@ -336,8 +351,8 @@ def admin_signup():
 
     try:
         conn = get_connection()
-        cur = conn.cursor(dictionary=True)
-        cur.execute("SELECT id FROM admin_sc WHERE email=%s", (ademail,))
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM admin_sc WHERE email=?", (ademail,))
         result = cur.fetchone()
         cur.close()
         conn.close()
@@ -415,7 +430,7 @@ def verify_otp():
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO admin_sc (anime, email, apassword) VALUES (%s, %s, %s)",
+            "INSERT INTO admin_sc (anime, email, apassword) VALUES (?, ?, ?)",
             (session['sadname'], session['sademail'], hashed_password)
         )
         conn.commit()
@@ -455,8 +470,8 @@ def admin_login():
     # Step 1: Check if admin exists
     try:
         conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM admin_sc WHERE email=%s", (email,))
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM admin_sc WHERE email=?", (email,))
         admin = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -506,8 +521,8 @@ def admin_forgot_password():
 
     try:
         conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT id, anime, email FROM admin_sc WHERE email = %s", (email,))
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, anime, email FROM admin_sc WHERE email = ?", (email,))
         admin = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -584,7 +599,7 @@ def admin_reset_password():
         hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("UPDATE admin_sc SET apassword = %s WHERE email = %s", (hashed_password, session['admin_reset_email']))
+        cursor.execute("UPDATE admin_sc SET apassword = ? WHERE email = ?", (hashed_password, session['admin_reset_email']))
         conn.commit()
         cursor.close()
         conn.close()
@@ -613,7 +628,7 @@ def admin_dashboard():
 
     try:
         conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
         cursor.execute("SELECT COUNT(*) AS total FROM products")
         row = cursor.fetchone()
@@ -696,7 +711,7 @@ def add_item():
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO products (name, description, category, price, image) VALUES (%s, %s, %s, %s, %s)",
+            "INSERT INTO products (name, description, category, price, image) VALUES (?, ?, ?, ?, ?)",
             (name, description, category, price, filename)
         )
         conn.commit()
@@ -721,7 +736,7 @@ def view_items():
 
     try:
         conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
         cursor.execute("SELECT * FROM products ORDER BY product_id DESC")
         products = cursor.fetchall()
         cursor.close()
@@ -744,8 +759,8 @@ def view_item(item_id):
 
     try:
         conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM products WHERE product_id = %s", (item_id,))
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM products WHERE product_id = ?", (item_id,))
         product = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -770,10 +785,10 @@ def update_item(item_id):
         return redirect('/admin-login')
 
     conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     if request.method == 'GET':
-        cursor.execute("SELECT * FROM products WHERE product_id = %s", (item_id,))
+        cursor.execute("SELECT * FROM products WHERE product_id = ?", (item_id,))
         product = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -808,7 +823,7 @@ def update_item(item_id):
         return redirect(f'/admin/update-item/{item_id}')
 
     # Fetch existing product
-    cursor.execute("SELECT * FROM products WHERE product_id = %s", (item_id,))
+    cursor.execute("SELECT * FROM products WHERE product_id = ?", (item_id,))
     product = cursor.fetchone()
 
     if not product:
@@ -842,8 +857,8 @@ def update_item(item_id):
     # Update database
     cursor.execute("""
         UPDATE products
-        SET name=%s, description=%s, category=%s, price=%s, image=%s
-        WHERE product_id=%s
+        SET name=?, description=?, category=?, price=?, image=?
+        WHERE product_id=?
     """, (name, description, category, price, final_image_name, item_id))
 
     conn.commit()
@@ -868,7 +883,7 @@ def item_list():
 
     try:
         conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
         # 1. Fetch categories for dropdown filter
         cursor.execute("SELECT DISTINCT category FROM products WHERE category IS NOT NULL AND category != '' ORDER BY category ASC")
@@ -879,11 +894,11 @@ def item_list():
         params = []
 
         if search:
-            query += " AND (name LIKE %s OR description LIKE %s)"
+            query += " AND (name LIKE ? OR description LIKE ?)"
             params.extend(["%" + search + "%", "%" + search + "%"])
 
         if category_filter:
-            query += " AND category = %s"
+            query += " AND category = ?"
             params.append(category_filter)
 
         query += " ORDER BY product_id DESC"
@@ -917,10 +932,10 @@ def delete_item(item_id):
 
     try:
         conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
         # 1. Fetch product to get image filename
-        cursor.execute("SELECT image FROM products WHERE product_id=%s", (item_id,))
+        cursor.execute("SELECT image FROM products WHERE product_id=?", (item_id,))
         product = cursor.fetchone()
 
         if not product:
@@ -932,7 +947,7 @@ def delete_item(item_id):
         image_name = product.get('image')
 
         # 2. Delete product from database
-        cursor.execute("DELETE FROM products WHERE product_id=%s", (item_id,))
+        cursor.execute("DELETE FROM products WHERE product_id=?", (item_id,))
         conn.commit()
 
         # 3. Safely delete image file from filesystem
@@ -966,9 +981,9 @@ def admin_profile():
 
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
         cursor.execute(
-            "SELECT id AS admin_id, anime AS name, email, apassword AS password, profile_image FROM admin_sc WHERE id = %s",
+            "SELECT id AS admin_id, anime AS name, email, apassword AS password, profile_image FROM admin_sc WHERE id = ?",
             (admin_id,)
         )
         admin = cursor.fetchone()
@@ -1004,10 +1019,10 @@ def admin_profile_update():
 
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
         cursor.execute(
-            "SELECT id AS admin_id, anime AS name, email, apassword AS password, profile_image FROM admin_sc WHERE id = %s",
+            "SELECT id AS admin_id, anime AS name, email, apassword AS password, profile_image FROM admin_sc WHERE id = ?",
             (admin_id,)
         )
         admin = cursor.fetchone()
@@ -1049,8 +1064,8 @@ def admin_profile_update():
         # Update database
         cursor.execute("""
             UPDATE admin_sc
-            SET anime=%s, email=%s, apassword=%s, profile_image=%s
-            WHERE id=%s
+            SET anime=?, email=?, apassword=?, profile_image=?
+            WHERE id=?
         """, (name, email, hashed_password, final_image_name, admin_id))
 
         conn.commit()
@@ -1091,9 +1106,9 @@ def user_register():
 
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
-        cursor.execute("SELECT user_id FROM users WHERE email=%s", (email,))
+        cursor.execute("SELECT user_id FROM users WHERE email=?", (email,))
         existing_user = cursor.fetchone()
 
         cursor.close()
@@ -1169,7 +1184,7 @@ def user_verify_otp():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO users (name, email, password) VALUES (%s, %s, %s)",
+            "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
             (session['user_reg_name'], session['user_reg_email'], hashed_password)
         )
         conn.commit()
@@ -1207,9 +1222,9 @@ def user_login():
 
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
+        cursor.execute("SELECT * FROM users WHERE email=?", (email,))
         user = cursor.fetchone()
 
         cursor.close()
@@ -1258,8 +1273,8 @@ def user_forgot_password():
 
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT user_id, name, email FROM users WHERE email = %s", (email,))
+        cursor = conn.cursor()
+        cursor.execute("SELECT user_id, name, email FROM users WHERE email = ?", (email,))
         user = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -1336,7 +1351,7 @@ def user_reset_password():
         hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("UPDATE users SET password = %s WHERE email = %s", (hashed_password, session['user_reset_email']))
+        cursor.execute("UPDATE users SET password = ? WHERE email = ?", (hashed_password, session['user_reset_email']))
         conn.commit()
         cursor.close()
         conn.close()
@@ -1364,7 +1379,7 @@ def user_dashboard():
 
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
         cursor.execute("SELECT DISTINCT category FROM products WHERE category IS NOT NULL AND category != '' ORDER BY category ASC")
         categories = cursor.fetchall()
@@ -1373,21 +1388,21 @@ def user_dashboard():
         params = []
 
         if search:
-            query += " AND (name LIKE %s OR description LIKE %s)"
+            query += " AND (name LIKE ? OR description LIKE ?)"
             params.extend(["%" + search + "%", "%" + search + "%"])
 
         if category_filter:
-            query += " AND category = %s"
+            query += " AND category = ?"
             params.append(category_filter)
 
         query += " ORDER BY product_id DESC"
         cursor.execute(query, params)
         products = cursor.fetchall()
 
-        cursor.execute("SELECT COUNT(*) AS total_orders, COALESCE(SUM(total_amount), 0) AS total_spent FROM orders WHERE user_id = %s", (user_id,))
+        cursor.execute("SELECT COUNT(*) AS total_orders, COALESCE(SUM(total_amount), 0) AS total_spent FROM orders WHERE user_id = ?", (user_id,))
         order_stats = cursor.fetchone() or {'total_orders': 0, 'total_spent': 0}
 
-        cursor.execute("SELECT * FROM orders WHERE user_id = %s ORDER BY created_at DESC LIMIT 3", (user_id,))
+        cursor.execute("SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 3", (user_id,))
         recent_orders = cursor.fetchall()
 
         cursor.close()
@@ -1435,8 +1450,8 @@ def user_profile():
     if request.method == 'GET':
         try:
             conn = get_db_connection()
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT user_id, name, email, profile_image FROM users WHERE user_id = %s", (user_id,))
+            cursor = conn.cursor()
+            cursor.execute("SELECT user_id, name, email, profile_image FROM users WHERE user_id = ?", (user_id,))
             user = cursor.fetchone()
             cursor.close()
             conn.close()
@@ -1458,14 +1473,14 @@ def user_profile():
 
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
-        cursor.execute("SELECT user_id, profile_image FROM users WHERE user_id = %s", (user_id,))
+        cursor.execute("SELECT user_id, profile_image FROM users WHERE user_id = ?", (user_id,))
         current_user = cursor.fetchone()
         old_image_name = current_user.get('profile_image') if current_user else None
 
         # Check if email is used by another user
-        cursor.execute("SELECT user_id FROM users WHERE email = %s AND user_id != %s", (email, user_id))
+        cursor.execute("SELECT user_id FROM users WHERE email = ? AND user_id != ?", (email, user_id))
         if cursor.fetchone():
             cursor.close()
             conn.close()
@@ -1492,12 +1507,12 @@ def user_profile():
         if password:
             hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             cursor.execute(
-                "UPDATE users SET name = %s, email = %s, password = %s, profile_image = %s WHERE user_id = %s",
+                "UPDATE users SET name = ?, email = ?, password = ?, profile_image = ? WHERE user_id = ?",
                 (name, email, hashed, final_image_name, user_id)
             )
         else:
             cursor.execute(
-                "UPDATE users SET name = %s, email = %s, profile_image = %s WHERE user_id = %s",
+                "UPDATE users SET name = ?, email = ?, profile_image = ? WHERE user_id = ?",
                 (name, email, final_image_name, user_id)
             )
 
@@ -1528,7 +1543,7 @@ def user_products():
 
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
         # Fetch categories for filter dropdown
         cursor.execute("SELECT DISTINCT category FROM products WHERE category IS NOT NULL AND category != '' ORDER BY category ASC")
@@ -1539,11 +1554,11 @@ def user_products():
         params = []
 
         if search:
-            query += " AND (name LIKE %s OR description LIKE %s)"
+            query += " AND (name LIKE ? OR description LIKE ?)"
             params.extend(["%" + search + "%", "%" + search + "%"])
 
         if category_filter:
-            query += " AND category = %s"
+            query += " AND category = ?"
             params.append(category_filter)
 
         query += " ORDER BY product_id DESC"
@@ -1572,8 +1587,8 @@ def user_product_details(product_id):
 
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM products WHERE product_id = %s", (product_id,))
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM products WHERE product_id = ?", (product_id,))
         product = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -1604,8 +1619,8 @@ def add_to_cart(product_id):
 
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM products WHERE product_id=%s", (product_id,))
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM products WHERE product_id=?", (product_id,))
         product = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -1647,8 +1662,8 @@ def add_to_cart_ajax(product_id):
 
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM products WHERE product_id=%s", (product_id,))
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM products WHERE product_id=?", (product_id,))
         product = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -1827,17 +1842,17 @@ def payment_success():
 
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
         # Check if order was already recorded (avoids duplicates on page reload)
-        cursor.execute("SELECT * FROM orders WHERE order_id = %s", (order_id,))
+        cursor.execute("SELECT * FROM orders WHERE order_id = ?", (order_id,))
         order = cursor.fetchone()
 
         if not order and checkout_items:
             total_amount = sum(float(item['price']) * int(item['quantity']) for item in checkout_items.values())
             cursor.execute("""
                 INSERT INTO orders (order_id, user_id, payment_id, razorpay_order_id, total_amount, status, payment_status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (order_id, user_id, payment_id, order_id, total_amount, 'Paid', 'Success'))
 
             for pid, item in checkout_items.items():
@@ -1850,7 +1865,7 @@ def payment_success():
 
                 cursor.execute("""
                     INSERT INTO order_items (order_id, product_id, product_name, product_price, quantity, product_image, subtotal)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, (order_id, p_id, p_name, p_price, p_qty, p_img, p_subtotal))
 
             conn.commit()
@@ -1865,15 +1880,15 @@ def payment_success():
             session.modified = True
 
             # Refetch the newly created order
-            cursor.execute("SELECT * FROM orders WHERE order_id = %s", (order_id,))
+            cursor.execute("SELECT * FROM orders WHERE order_id = ?", (order_id,))
             order = cursor.fetchone()
 
         # Fetch items belonging to this order
-        cursor.execute("SELECT * FROM order_items WHERE order_id = %s", (order_id,))
+        cursor.execute("SELECT * FROM order_items WHERE order_id = ?", (order_id,))
         items = cursor.fetchall()
 
         # Fetch user details
-        cursor.execute("SELECT user_id, name, email FROM users WHERE user_id = %s", (user_id,))
+        cursor.execute("SELECT user_id, name, email FROM users WHERE user_id = ?", (user_id,))
         user = cursor.fetchone()
 
         cursor.close()
@@ -1910,18 +1925,18 @@ def user_orders():
     user_id = session['user_id']
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
         cursor.execute("""
             SELECT * FROM orders 
-            WHERE user_id = %s 
+            WHERE user_id = ? 
             ORDER BY created_at DESC, id DESC
         """, (user_id,))
         orders = cursor.fetchall()
 
         # Fetch items for each order
         for ord_data in orders:
-            cursor.execute("SELECT * FROM order_items WHERE order_id = %s", (ord_data['order_id'],))
+            cursor.execute("SELECT * FROM order_items WHERE order_id = ?", (ord_data['order_id'],))
             fetched_items = cursor.fetchall()
             ord_data['items'] = fetched_items
             ord_data['order_items'] = fetched_items
@@ -1947,9 +1962,9 @@ def order_invoice(order_id):
 
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM orders WHERE order_id = %s", (order_id,))
+        cursor.execute("SELECT * FROM orders WHERE order_id = ?", (order_id,))
         order = cursor.fetchone()
 
         if not order:
@@ -1965,10 +1980,10 @@ def order_invoice(order_id):
             flash("Access denied: You cannot view this invoice.", "danger")
             return redirect('/user-dashboard')
 
-        cursor.execute("SELECT * FROM order_items WHERE order_id = %s", (order_id,))
+        cursor.execute("SELECT * FROM order_items WHERE order_id = ?", (order_id,))
         items = cursor.fetchall()
 
-        cursor.execute("SELECT user_id, name, email FROM users WHERE user_id = %s", (order['user_id'],))
+        cursor.execute("SELECT user_id, name, email FROM users WHERE user_id = ?", (order['user_id'],))
         user = cursor.fetchone()
 
         cursor.close()
@@ -2014,9 +2029,9 @@ def order_invoice_download(order_id):
 
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM orders WHERE order_id = %s", (order_id,))
+        cursor.execute("SELECT * FROM orders WHERE order_id = ?", (order_id,))
         order = cursor.fetchone()
 
         if not order:
@@ -2031,10 +2046,10 @@ def order_invoice_download(order_id):
             flash("Access denied: You cannot download this invoice.", "danger")
             return redirect('/user-dashboard')
 
-        cursor.execute("SELECT * FROM order_items WHERE order_id = %s", (order_id,))
+        cursor.execute("SELECT * FROM order_items WHERE order_id = ?", (order_id,))
         items = cursor.fetchall()
 
-        cursor.execute("SELECT user_id, name, email FROM users WHERE user_id = %s", (order['user_id'],))
+        cursor.execute("SELECT user_id, name, email FROM users WHERE user_id = ?", (order['user_id'],))
         user = cursor.fetchone()
 
         cursor.close()
