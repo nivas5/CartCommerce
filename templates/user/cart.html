@@ -15,7 +15,12 @@
         <a href="/user-dashboard" class="brand-logo-custom" title="CartCommerce Dashboard">
             <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CartCommerce" class="brand-logo-img">
         </a>
-        <nav class="nav-links">
+                <!-- Mobile / Tablet Navigation Toggle Button -->
+        <button class="nav-toggle-btn" id="navToggle" aria-label="Toggle navigation menu" aria-expanded="false">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <nav class="nav-links" id="navLinks">
             <a href="/user-dashboard" class="nav-link"><i class="fa-solid fa-house"></i> Home</a>
             <a href="/user/products" class="nav-link"><i class="fa-solid fa-store"></i> Browse Products</a>
             <a href="/user/orders" class="nav-link"><i class="fa-solid fa-box-archive"></i> My Orders</a>
@@ -309,5 +314,7 @@
     document.addEventListener('DOMContentLoaded', updateSelectionSummary);
     </script>
 
+    <!-- Navigation Bar Interaction Script -->
+    <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
 </body>
 </html>

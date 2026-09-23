@@ -1,7 +1,7 @@
 from flask import Flask, request, render_template, redirect, session, flash, url_for, send_file
 from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
-import mysql.connector
+import sqlite3
 import razorpay
 import config
 import random
@@ -53,60 +53,32 @@ mail = Mail(app)
 
 # ------------------- DATABASE CONNECTION & INIT -------------------
 def get_connection():
-    conn = mysql.connector.connect(
-        host=config.chost,
-        user=config.cuser,
-        password=config.cpassword,
-        db=config.cdb
-    )
+    conn = sqlite3.connect("smartcart.db")
+    conn.row_factory = sqlite3.Row
     return conn
 
 # Alias for backward compatibility
 get_db_connection = get_connection
 
-
 def init_db():
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS orders (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                order_id VARCHAR(100) NOT NULL UNIQUE,
-                user_id INT NOT NULL,
-                payment_id VARCHAR(100) NOT NULL,
-                razorpay_order_id VARCHAR(100),
-                total_amount DECIMAL(10,2) NOT NULL,
-                status VARCHAR(50) DEFAULT 'Paid',
-                payment_status VARCHAR(50) DEFAULT 'Success',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS order_items (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                order_id VARCHAR(100) NOT NULL,
-                product_id INT,
-                product_name VARCHAR(150) NOT NULL,
-                product_price DECIMAL(10,2) NOT NULL,
-                quantity INT NOT NULL DEFAULT 1,
-                product_image VARCHAR(255),
-                subtotal DECIMAL(10,2) NOT NULL
-            )
-        """)
-        # Ensure users table has profile_image column
-        try:
-            cursor.execute("ALTER TABLE users ADD COLUMN profile_image VARCHAR(255)")
-        except Exception:
-            pass
+
+        with open("schema.sql", "r", encoding="utf-8") as file:
+            schema = file.read()
+
+        cursor.executescript(schema)
 
         conn.commit()
         cursor.close()
         conn.close()
+
+        print("SQLite database initialized successfully.")
+
     except Exception as e:
         print(f"Database initialization warning: {e}")
 
-# Ensure required tables exist on app start
 init_db()
 
 

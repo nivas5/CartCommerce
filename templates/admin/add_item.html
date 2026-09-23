@@ -16,7 +16,12 @@
             <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CartCommerce" class="brand-logo-img">
             <span class="brand-admin-badge">Admin</span>
         </a>
-        <nav class="nav-links">
+                <!-- Mobile / Tablet Navigation Toggle Button -->
+        <button class="nav-toggle-btn" id="navToggle" aria-label="Toggle navigation menu" aria-expanded="false">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <nav class="nav-links" id="navLinks">
             <a href="/admin-dashboard" class="nav-link"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
             <a href="/admin/item-list" class="nav-link"><i class="fa-solid fa-boxes-stacked"></i> Manage Products</a>
             <a href="/admin/add-item" class="nav-link active"><i class="fa-solid fa-plus-circle"></i> Add Product</a>
@@ -91,5 +96,7 @@
         </div>
     </main>
 
+    <!-- Navigation Bar Interaction Script -->
+    <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
 </body>
 </html>

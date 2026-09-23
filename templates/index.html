@@ -28,7 +28,12 @@
             <input type="text" name="search" class="nav-search-input" placeholder="Search for products, categories, brands..." value="{{ search or '' }}">
         </form>
 
-        <nav class="nav-links">
+                <!-- Mobile / Tablet Navigation Toggle Button -->
+        <button class="nav-toggle-btn" id="navToggle" aria-label="Toggle navigation menu" aria-expanded="false">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <nav class="nav-links" id="navLinks">
             {% if session.get('user_id') %}
                 <a href="/user-dashboard" class="nav-link"><i class="fa-solid fa-gauge"></i> My Dashboard</a>
                 <a href="/user/orders" class="nav-link"><i class="fa-solid fa-box-archive"></i> Orders</a>
@@ -365,5 +370,7 @@
     }
     </script>
 
+    <!-- Navigation Bar Interaction Script -->
+    <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
 </body>
 </html>
