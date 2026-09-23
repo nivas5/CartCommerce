@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders - CartCommerce</title>
+    <!-- FontAwesome & CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- Customer Navigation Bar -->
+    <header class="navbar">
+        <a href="/user-dashboard" class="brand-logo-custom" title="CartCommerce Dashboard">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CartCommerce" class="brand-logo-img">
+        </a>
+        <nav class="nav-links">
+            <a href="/user-dashboard" class="nav-link"><i class="fa-solid fa-house"></i> Home</a>
+            <a href="/user/products" class="nav-link"><i class="fa-solid fa-store"></i> Browse Products</a>
+            <a href="/user/orders" class="nav-link active"><i class="fa-solid fa-box-archive"></i> My Orders</a>
+            <a href="/user/cart" class="nav-link">
+                <i class="fa-solid fa-cart-shopping"></i> Cart
+                <span class="nav-cart-badge" id="cart-count">{{ session.get('cart')|length if session.get('cart') else 0 }}</span>
+            </a>
+            <a href="/user/profile" class="nav-link"><i class="fa-solid fa-user-circle"></i> Profile</a>
+            <a href="/user-logout" class="nav-link nav-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+        </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+                <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-circle-exclamation' }} alert-icon"></i>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="page-header">
+            <div class="page-title-group">
+                <h2><i class="fa-solid fa-box-archive"></i> My Purchase History</h2>
+                <p>Track your orders, review item details, and download tax receipts.</p>
+            </div>
+            <a href="/user/products" class="btn btn-primary">
+                <i class="fa-solid fa-store"></i> Browse Catalog
+            </a>
+        </div>
+
+        {% if not orders %}
+            <div class="empty-state">
+                <i class="fa-solid fa-box-open empty-state-icon"></i>
+                <h3>No Orders Placed Yet</h3>
+                <p>You haven't placed any orders with CartCommerce yet. Explore our product catalog to get started!</p>
+                <a href="/user/products" class="btn btn-primary btn-lg">
+                    <i class="fa-solid fa-bag-shopping"></i> Start Shopping
+                </a>
+            </div>
+        {% else %}
+            {% for order in orders %}
+            <div class="order-group-card">
+                <!-- Order Header Details -->
+                <div class="order-group-header">
+                    <div class="d-flex align-center gap-3 flex-wrap">
+                        <div class="order-meta-item">
+                            <span class="order-meta-label">Order ID</span>
+                            <span class="order-meta-val" style="font-family: monospace; font-size: 0.9rem;">#{{ order.order_id }}</span>
+                        </div>
+
+                        <div class="order-meta-item">
+                            <span class="order-meta-label">Date Placed</span>
+                            <span class="order-meta-val">{{ order.created_at.strftime('%d %b %Y, %I:%M %p') if order.created_at else 'Recent' }}</span>
+                        </div>
+
+                        <div class="order-meta-item">
+                            <span class="order-meta-label">Total Amount</span>
+                            <span class="order-meta-val" style="color: var(--text-main); font-weight: 800;">₹{{ "%.2f"|format(order.total_amount|float) }}</span>
+                        </div>
+
+                        <div class="order-meta-item">
+                            <span class="order-meta-label">Payment Status</span>
+                            <span class="badge badge-success">
+                                <i class="fa-solid fa-circle-check"></i> {{ order.status }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Invoice Action Buttons -->
+                    <div class="d-flex gap-2 align-center">
+                        <a href="/user/order/{{ order.order_id }}/invoice?download=1" class="btn btn-primary btn-sm">
+                            <i class="fa-solid fa-file-pdf"></i> Download Invoice
+                        </a>
+                        <a href="/user/order/{{ order.order_id }}/invoice" target="_blank" class="btn btn-secondary btn-sm">
+                            <i class="fa-solid fa-eye"></i> View Invoice
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Order Items Body -->
+                <div class="order-group-body">
+                    <div class="table-responsive" style="box-shadow: none; border-radius: var(--radius-sm);">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 75px;">Image</th>
+                                    <th>Product Name</th>
+                                    <th style="text-align: right;">Unit Price</th>
+                                    <th style="text-align: center;">Qty</th>
+                                    <th style="text-align: right;">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order['items'] %}
+                                <tr>
+                                    <td>
+                                        {% if item.product_image %}
+                                            <img src="/static/uploads/product_images/{{ item.product_image }}" class="table-img" alt="{{ item.product_name }}">
+                                        {% else %}
+                                            <div class="img-placeholder"><i class="fa-solid fa-image"></i></div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ item.product_name }}</strong>
+                                    </td>
+                                    <td style="text-align: right;"><span class="price-tag" style="font-size: 0.95rem;">₹{{ "%.2f"|format(item.product_price|float) }}</span></td>
+                                    <td style="text-align: center;"><strong>{{ item.quantity }}</strong></td>
+                                    <td style="text-align: right;"><strong style="font-size: 1rem;">₹{{ "%.2f"|format(item.subtotal|float) }}</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2026 CartCommerce. All rights reserved.</p>
+            <p>Logged in as <strong>{{ session.get('user_name', 'Customer') }}</strong></p>
+        </div>
+    </footer>
+
+</body>
+</html>

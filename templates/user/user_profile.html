@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - CartCommerce</title>
+    <!-- FontAwesome & CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- Customer Navigation Bar -->
+    <header class="navbar">
+        <a href="/user-dashboard" class="brand-logo-custom" title="CartCommerce Dashboard">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CartCommerce" class="brand-logo-img">
+        </a>
+        <nav class="nav-links">
+            <a href="/user-dashboard" class="nav-link"><i class="fa-solid fa-house"></i> Home</a>
+            <a href="/user/products" class="nav-link"><i class="fa-solid fa-store"></i> Browse Products</a>
+            <a href="/user/orders" class="nav-link"><i class="fa-solid fa-box-archive"></i> My Orders</a>
+            <a href="/user/cart" class="nav-link">
+                <i class="fa-solid fa-cart-shopping"></i> Cart
+                <span class="nav-cart-badge" id="cart-count">{{ session.get('cart')|length if session.get('cart') else 0 }}</span>
+            </a>
+            <a href="/user/profile" class="nav-link active"><i class="fa-solid fa-user-circle"></i> Profile</a>
+            <a href="/user-logout" class="nav-link nav-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+        </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container container-sm">
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+                <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-circle-exclamation' }} alert-icon"></i>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="card">
+            <div class="card-header">
+                <div class="page-title-group">
+                    <h2><i class="fa-solid fa-user-gear"></i> Customer Profile</h2>
+                    <p>Manage your personal account details, avatar, and security settings.</p>
+                </div>
+                <a href="/user-dashboard" class="btn btn-secondary btn-sm">
+                    <i class="fa-solid fa-arrow-left"></i> Dashboard
+                </a>
+            </div>
+
+            <!-- Profile Summary Display -->
+            <div class="text-center mb-4">
+                {% if user and user.profile_image %}
+                    <img src="/static/uploads/user_profiles/{{ user.profile_image }}" 
+                         alt="{{ user.name }}"
+                         style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); box-shadow: var(--shadow-md); margin: 0 auto;">
+                {% else %}
+                    <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); color: #ffffff; font-size: 2.2rem; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: var(--shadow-md);">
+                        {{ (user.name[0] if user and user.name else 'U')|upper }}
+                    </div>
+                {% endif %}
+                <h3 class="mt-2" style="font-size: 1.35rem; font-weight: 800; color: var(--text-main);">{{ user.name if user else session.get('user_name', 'Customer') }}</h3>
+                <p style="color: var(--text-muted); font-size: 0.92rem;">{{ user.email if user else session.get('user_email', '') }}</p>
+                <div class="d-flex justify-center gap-2 mt-2">
+                    <span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> Verified Member</span>
+                </div>
+            </div>
+
+            <!-- Profile Edit Form -->
+            <form method="POST" action="/user/profile" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label class="form-label"><i class="fa-solid fa-user"></i> Full Name</label>
+                    <input type="text" name="name" class="form-control" value="{{ user.name if user else session.get('user_name', '') }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label"><i class="fa-solid fa-envelope"></i> Email Address</label>
+                    <input type="email" name="email" class="form-control" value="{{ user.email if user else session.get('user_email', '') }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label"><i class="fa-solid fa-camera"></i> Profile Picture (Optional)</label>
+                    <input type="file" name="profile_image" class="form-control" accept="image/*">
+                    <small style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem; display: block;">Upload a JPG, PNG, or WEBP image to update your avatar.</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label"><i class="fa-solid fa-lock"></i> New Password (leave blank to keep current)</label>
+                    <input type="password" name="password" class="form-control" placeholder="••••••••">
+                </div>
+
+                <div class="d-flex justify-between align-center mt-4">
+                    <a href="/user-dashboard" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk"></i> Update Profile
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Quick Order History Box -->
+        <div class="card mt-3">
+            <div class="d-flex justify-between align-center">
+                <div>
+                    <h4 style="font-size: 1.05rem; font-weight: 800; margin-bottom: 0.2rem;"><i class="fa-solid fa-box-archive"></i> Purchase History & Receipts</h4>
+                    <p style="color: var(--text-muted); font-size: 0.88rem;">Review past orders, track delivery status, or download tax invoices.</p>
+                </div>
+                <a href="/user/orders" class="btn btn-outline-primary btn-sm">
+                    View Orders <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2026 CartCommerce. All rights reserved.</p>
+            <p>Logged in as <strong>{{ session.get('user_name', 'Customer') }}</strong></p>
+        </div>
+    </footer>
+
+</body>
+</html>

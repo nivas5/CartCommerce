@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CartCommerce - Modern E-Commerce Platform</title>
+    <!-- FontAwesome & CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- Top Announcement Bar -->
+    <div class="top-promo-bar">
+        <span>⚡ <strong>EXCLUSIVE SEASON OFFER:</strong> GET FLAT 15% OFF ON ORDERS OVER ₹999 | CODE: <strong>COMMERCE15</strong></span>
+        <span class="d-none-sm">🚚 FREE EXPRESS DELIVERY ACROSS INDIA</span>
+    </div>
+
+    <!-- Header / Navbar -->
+    <header class="navbar">
+        <a href="/" class="brand-logo-custom" title="CartCommerce Home">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CartCommerce" class="brand-logo-img">
+        </a>
+
+        <!-- Global Product Search Bar -->
+        <form action="/" method="GET" class="nav-search-bar">
+            <i class="fa-solid fa-magnifying-glass nav-search-icon"></i>
+            <input type="text" name="search" class="nav-search-input" placeholder="Search for products, categories, brands..." value="{{ search or '' }}">
+        </form>
+
+        <nav class="nav-links">
+            {% if session.get('user_id') %}
+                <a href="/user-dashboard" class="nav-link"><i class="fa-solid fa-gauge"></i> My Dashboard</a>
+                <a href="/user/orders" class="nav-link"><i class="fa-solid fa-box-archive"></i> Orders</a>
+                <a href="/user/cart" class="nav-link nav-cart-btn">
+                    <i class="fa-solid fa-bag-shopping"></i> Cart
+                    <span class="nav-cart-badge" id="cart-count">{{ session.get('cart')|length if session.get('cart') else 0 }}</span>
+                </a>
+                <a href="/user/profile" class="nav-link"><i class="fa-solid fa-user-circle"></i> Profile</a>
+                <a href="/user-logout" class="nav-link nav-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            {% else %}
+                <a href="/user-login" class="nav-link"><i class="fa-solid fa-user"></i> Sign In</a>
+                <a href="/user-register" class="nav-link"><i class="fa-solid fa-user-plus"></i> Register</a>
+                <a href="/admin-login" class="nav-link" title="Admin Control Portal"><i class="fa-solid fa-shield-halved"></i> Admin</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+                <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-circle-exclamation' }}"></i>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Hero Promotional Banner -->
+        <section class="ecommerce-hero">
+            <div style="max-width: 620px; z-index: 2;">
+                <span class="hero-tag"><i class="fa-solid fa-fire"></i> New Season Arrivals</span>
+                <h1 class="hero-title-main">Curated Essentials for <span>Modern Living</span></h1>
+                <p class="hero-subtitle-main">
+                    Explore high-grade catalog products with direct instant checkout, real-time inventory updates, and premium delivery right to your door.
+                </p>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="#products-section" class="btn-hero-white">
+                        <i class="fa-solid fa-bag-shopping"></i> Explore Collection
+                    </a>
+                    {% if not session.get('user_id') %}
+                        <a href="/user-register" class="btn-hero-outline">
+                            <i class="fa-solid fa-user-plus"></i> Join CartCommerce
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div style="text-align: right; z-index: 2;" class="d-none-sm">
+                <div style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); padding: 2rem; border-radius: var(--radius-xl); backdrop-filter: blur(10px); text-align: center; min-width: 240px;">
+                    <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #a1a1aa; letter-spacing: 0.08em;">Limited Time</span>
+                    <h3 style="font-size: 2.2rem; font-weight: 900; margin: 0.25rem 0;">FLAT 30% OFF</h3>
+                    <p style="font-size: 0.85rem; color: #d4d4d8;">On All Featured Items</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Deals & Offers Row -->
+        <section class="deals-grid">
+            <div class="deal-card">
+                <div class="deal-icon-box">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div class="deal-content">
+                    <span class="deal-badge">Flash Deal</span>
+                    <h4>Deal of the Day</h4>
+                    <p>Grab handpicked premium products at lowest prices.</p>
+                </div>
+            </div>
+
+            <div class="deal-card">
+                <div class="deal-icon-box">
+                    <i class="fa-solid fa-truck-fast"></i>
+                </div>
+                <div class="deal-content">
+                    <span class="deal-badge">Fast Dispatch</span>
+                    <h4>Free Shipping</h4>
+                    <p>Free standard delivery on all orders over ₹999.</p>
+                </div>
+            </div>
+
+            <div class="deal-card">
+                <div class="deal-icon-box">
+                    <i class="fa-solid fa-shield-check"></i>
+                </div>
+                <div class="deal-content">
+                    <span class="deal-badge">100% Safe</span>
+                    <h4>Razorpay Protected</h4>
+                    <p>Secure payments with instant receipt & tax invoice.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Products Section -->
+        <section id="products-section">
+            <div class="category-nav-wrap">
+                <div class="category-chips">
+                    <a href="/" class="cat-chip {% if not selected_category %}active{% endif %}">
+                        <i class="fa-solid fa-border-all"></i> All Products
+                    </a>
+                    {% for cat in categories %}
+                    <a href="/?category={{ cat.category }}" class="cat-chip {% if selected_category == cat.category %}active{% endif %}">
+                        {{ cat.category }}
+                    </a>
+                    {% endfor %}
+                </div>
+
+                {% if search or selected_category %}
+                <div class="d-flex align-center gap-2">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">
+                        Showing results for: <strong>{{ search or selected_category }}</strong>
+                    </span>
+                    <a href="/" class="btn btn-secondary btn-sm"><i class="fa-solid fa-xmark"></i> Clear</a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Product Cards Grid -->
+            {% if products %}
+            <div class="product-grid">
+                {% for product in products %}
+                <div class="product-card">
+                    <div class="product-card-img-wrap">
+                        {% if product.image %}
+                            <img src="/static/uploads/product_images/{{ product.image }}" alt="{{ product.name }}" class="product-card-img" loading="lazy">
+                        {% else %}
+                            <i class="fa-solid fa-box-open" style="font-size: 3rem; color: #cbd5e1;"></i>
+                        {% endif %}
+                        <span class="product-offer-tag">Special Offer</span>
+                    </div>
+
+                    <div class="product-card-body">
+                        <span class="product-cat-pill">{{ product.category }}</span>
+                        <h3 class="product-card-title">{{ product.name }}</h3>
+                        
+                        <div class="product-rating">
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star-half-stroke"></i>
+                            <span style="color: var(--text-muted); font-size: 0.75rem; margin-left: 0.25rem;">(4.8)</span>
+                        </div>
+
+                        <div class="product-card-price-row">
+                            <span class="product-current-price">₹{{ "%.2f"|format(product.price|float) }}</span>
+                            <span class="product-original-price">₹{{ "%.2f"|format((product.price|float) * 1.25) }}</span>
+                        </div>
+
+                        <div class="product-card-actions">
+                            <a href="/user/product/{{ product.product_id }}" class="btn btn-secondary btn-sm flex-1">
+                                <i class="fa-solid fa-eye"></i> Details
+                            </a>
+                            {% if session.get('user_id') %}
+                                <button type="button" onclick="addToCart('{{ product.product_id }}', event)" class="btn btn-primary btn-sm flex-1">
+                                    <i class="fa-solid fa-cart-plus"></i> Add
+                                </button>
+                            {% else %}
+                                <button type="button" onclick="openAuthPrompt('{{ product.name|replace("'", "\\'") }}', event)" class="btn btn-primary btn-sm flex-1">
+                                    <i class="fa-solid fa-cart-plus"></i> Add
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="card text-center" style="padding: 4rem 2rem;">
+                <i class="fa-solid fa-box-open" style="font-size: 3.5rem; color: #a1a1aa; margin-bottom: 1rem;"></i>
+                <h3 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 0.5rem;">No Products Found</h3>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Try modifying your search query or explore all categories.</p>
+                <a href="/" class="btn btn-primary">Browse All Products</a>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- Value Proposition Bar -->
+        <section class="value-props-bar">
+            <div class="value-prop-item">
+                <div class="value-prop-icon"><i class="fa-solid fa-truck"></i></div>
+                <div class="value-prop-text">
+                    <h4>Fast & Free Delivery</h4>
+                    <p>On orders above ₹999</p>
+                </div>
+            </div>
+            <div class="value-prop-item">
+                <div class="value-prop-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="value-prop-text">
+                    <h4>100% Genuine</h4>
+                    <p>Direct authentic items</p>
+                </div>
+            </div>
+            <div class="value-prop-item">
+                <div class="value-prop-icon"><i class="fa-solid fa-credit-card"></i></div>
+                <div class="value-prop-text">
+                    <h4>Secure Checkout</h4>
+                    <p>256-bit encrypted Razorpay</p>
+                </div>
+            </div>
+            <div class="value-prop-item">
+                <div class="value-prop-icon"><i class="fa-solid fa-file-invoice"></i></div>
+                <div class="value-prop-text">
+                    <h4>Instant Tax Invoice</h4>
+                    <p>Automated PDF downloads</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Guest Add To Cart Prompt Modal -->
+    <div id="authPromptModal" class="auth-prompt-overlay" onclick="closeAuthPrompt(event)">
+        <div class="auth-prompt-modal" onclick="event.stopPropagation()">
+            <div class="logo-badge">
+                <i class="fa-solid fa-bag-shopping"></i>
+            </div>
+            <h2>Sign In to Add to Cart</h2>
+            <p>
+                Please log in to your <strong>CartCommerce</strong> customer account to add <span id="promptProductName" style="font-weight: 700; color: #000;">this product</span> to your cart and proceed with checkout.
+            </p>
+            <div class="auth-prompt-actions">
+                <a href="/user-login" class="btn btn-primary">
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In to Account
+                </a>
+                <a href="/user-register" class="btn btn-secondary">
+                    <i class="fa-solid fa-user-plus"></i> Create New Account (OTP)
+                </a>
+                <button type="button" onclick="closeAuthPromptDirect()" class="btn btn-secondary" style="font-weight: 600; color: var(--text-muted); border: none; background: transparent;">
+                    Continue Browsing
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast-notification">
+        <i class="fa-solid fa-circle-check" style="color: #ffffff;"></i>
+        <span id="toast-message">Item added to cart!</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand-white">
+                <div class="brand-logo-custom mb-1">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CartCommerce" class="brand-logo-img" style="height: 38px;">
+                </div>
+                <p style="font-size: 0.85rem; color: #71717a;">Modern Minimalist E-Commerce Platform</p>
+            </div>
+            <div class="d-flex gap-3 flex-wrap">
+                <a href="/user/products">Browse Catalog</a>
+                <a href="/user-login">Customer Portal</a>
+                <a href="/admin-login">Admin Portal</a>
+            </div>
+            <p>&copy; 2026 CartCommerce Inc. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts for Cart & Modals -->
+    <script>
+    function showToast(message) {
+        const toast = document.getElementById("toast");
+        const toastMsg = document.getElementById("toast-message");
+        if (toast && toastMsg) {
+            toastMsg.innerText = message;
+            toast.classList.add("show");
+            setTimeout(() => {
+                toast.classList.remove("show");
+            }, 3000);
+        }
+    }
+
+    function addToCart(productId, event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        fetch(`/user/add-to-cart-ajax/${productId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (response.status === 401) {
+                openAuthPrompt();
+                return null;
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data) return;
+            const cartBadge = document.getElementById("cart-count");
+            if (cartBadge) {
+                cartBadge.innerText = data.cart_count;
+            }
+            showToast(data.message || "Item added to cart!");
+        })
+        .catch(error => {
+            console.error("Cart Error:", error);
+            showToast("Could not add item to cart.");
+        });
+    }
+
+    function openAuthPrompt(productName, event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        const modal = document.getElementById("authPromptModal");
+        const nameSpan = document.getElementById("promptProductName");
+        if (nameSpan) {
+            nameSpan.innerText = productName ? `"${productName}"` : "this item";
+        }
+        if (modal) {
+            modal.classList.add("show");
+        }
+    }
+
+    function closeAuthPrompt(event) {
+        if (event.target && event.target.id === "authPromptModal") {
+            closeAuthPromptDirect();
+        }
+    }
+
+    function closeAuthPromptDirect() {
+        const modal = document.getElementById("authPromptModal");
+        if (modal) {
+            modal.classList.remove("show");
+        }
+    }
+    </script>
+
+</body>
+</html>

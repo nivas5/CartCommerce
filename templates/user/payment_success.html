@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Successful - CartCommerce</title>
+    <!-- FontAwesome & CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- Customer Navigation Bar -->
+    <header class="navbar">
+        <a href="/user-dashboard" class="brand-logo-custom" title="CartCommerce Dashboard">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CartCommerce" class="brand-logo-img">
+        </a>
+        <nav class="nav-links">
+            <a href="/user-dashboard" class="nav-link"><i class="fa-solid fa-house"></i> Home</a>
+            <a href="/user/products" class="nav-link"><i class="fa-solid fa-store"></i> Browse Products</a>
+            <a href="/user/orders" class="nav-link"><i class="fa-solid fa-box-archive"></i> My Orders</a>
+            <a href="/user/cart" class="nav-link">
+                <i class="fa-solid fa-cart-shopping"></i> Cart
+            </a>
+            <a href="/user/profile" class="nav-link"><i class="fa-solid fa-user-circle"></i> Profile</a>
+            <a href="/user-logout" class="nav-link nav-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+        </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container container-md">
+        <!-- Success Card -->
+        <div class="card text-center mb-4" style="border-top: 4px solid var(--success);">
+            <div class="success-icon-wrap">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <h1 style="font-size: 2rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.5rem;">Payment Successful!</h1>
+            <p style="color: var(--text-muted); font-size: 1rem; max-width: 500px; margin: 0 auto 1.5rem;">
+                Thank you for your purchase. Your order has been placed and payment has been verified.
+            </p>
+
+            <div class="d-flex justify-center gap-2 flex-wrap mb-3">
+                <a href="/user/order/{{ order.order_id if order else order_id }}/invoice?download=1" class="btn btn-primary">
+                    <i class="fa-solid fa-file-pdf"></i> Download PDF Invoice
+                </a>
+                <a href="/user/order/{{ order.order_id if order else order_id }}/invoice" target="_blank" class="btn btn-secondary">
+                    <i class="fa-solid fa-eye"></i> View Invoice
+                </a>
+            </div>
+
+            <div style="background: var(--surface-alt); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border); max-width: 540px; margin: 0 auto; text-align: left;">
+                <div class="d-flex justify-between mb-1">
+                    <span style="color: var(--text-muted); font-size: 0.88rem;">Order ID:</span>
+                    <strong style="font-size: 0.88rem; font-family: monospace;">{{ order.order_id if order else order_id }}</strong>
+                </div>
+                <div class="d-flex justify-between mb-1">
+                    <span style="color: var(--text-muted); font-size: 0.88rem;">Payment ID:</span>
+                    <strong style="font-size: 0.88rem; font-family: monospace;">{{ order.payment_id if order else payment_id }}</strong>
+                </div>
+                <div class="d-flex justify-between">
+                    <span style="color: var(--text-muted); font-size: 0.88rem;">Status:</span>
+                    <span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> {{ order.status if order else 'Paid' }}</span>
+                </div>
+            </div>
+        </div>
+
+        {% if items %}
+        <!-- Purchased Items Section -->
+        <div class="card mb-4">
+            <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 1.25rem;">Ordered Items Summary</h3>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">Item</th>
+                            <th>Product Name</th>
+                            <th>Unit Price</th>
+                            <th style="text-align: center;">Quantity</th>
+                            <th style="text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td>
+                                {% if item.product_image %}
+                                    <img src="/static/uploads/product_images/{{ item.product_image }}" class="table-img" alt="{{ item.product_name }}">
+                                {% else %}
+                                    <div class="img-placeholder"><i class="fa-solid fa-image"></i></div>
+                                {% endif %}
+                            </td>
+                            <td><strong>{{ item.product_name }}</strong></td>
+                            <td><span class="price-tag">₹{{ "%.2f"|format(item.product_price|float) }}</span></td>
+                            <td style="text-align: center;"><strong>{{ item.quantity }}</strong></td>
+                            <td style="text-align: right;"><span class="price-tag" style="color: var(--primary);">₹{{ "%.2f"|format(item.subtotal|float) }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-between align-center mt-3 pt-3" style="border-top: 1px solid var(--border);">
+                <span style="font-weight: 700; font-size: 1.1rem;">Grand Total Paid:</span>
+                <span class="price-tag" style="font-size: 1.5rem; color: var(--primary);">
+                    ₹{{ "%.2f"|format(order.total_amount|float) if order else '0.00' }}
+                </span>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="d-flex justify-between align-center flex-wrap gap-2">
+            <a href="/user/orders" class="btn btn-secondary">
+                <i class="fa-solid fa-box-archive"></i> View All Orders
+            </a>
+            <a href="/user/products" class="btn btn-primary">
+                <i class="fa-solid fa-bag-shopping"></i> Continue Shopping
+            </a>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2026 CartCommerce. All rights reserved.</p>
+        </div>
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard - CartCommerce</title>
+    <!-- FontAwesome & CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- Top Announcement Bar -->
+    <div class="top-promo-bar">
+        <span>⚡ <strong>MEMBER SPECIAL:</strong> ENJOY EXCLUSIVE DISCOUNTS & REAL-TIME CART CHECKOUT</span>
+        <span class="d-none-sm">🚚 FREE SHIPPING ACTIVE ON YOUR ACCOUNT</span>
+    </div>
+
+    <!-- Customer Navigation Bar -->
+    <header class="navbar">
+        <a href="/user-dashboard" class="brand-logo-custom" title="CartCommerce Dashboard">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CartCommerce" class="brand-logo-img">
+        </a>
+
+        <!-- Search Bar -->
+        <form action="/user-dashboard" method="GET" class="nav-search-bar">
+            <i class="fa-solid fa-magnifying-glass nav-search-icon"></i>
+            <input type="text" name="search" class="nav-search-input" placeholder="Search catalog items, categories, brands..." value="{{ search or '' }}">
+        </form>
+
+        <nav class="nav-links">
+            <a href="/user-dashboard" class="nav-link active"><i class="fa-solid fa-house"></i> Home</a>
+            <a href="/user/products" class="nav-link"><i class="fa-solid fa-store"></i> Browse Products</a>
+            <a href="/user/orders" class="nav-link"><i class="fa-solid fa-box-archive"></i> My Orders</a>
+            <a href="/user/cart" class="nav-link nav-cart-btn">
+                <i class="fa-solid fa-bag-shopping"></i> Cart
+                <span class="nav-cart-badge" id="cart-count">{{ session.get('cart')|length if session.get('cart') else 0 }}</span>
+            </a>
+            <a href="/user/profile" class="nav-link"><i class="fa-solid fa-user-circle"></i> Profile</a>
+            <a href="/user-logout" class="nav-link nav-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+        </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+                <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-circle-exclamation' }}"></i>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Luxury Hero Banner -->
+        <section class="ecommerce-hero">
+            <div style="max-width: 620px; z-index: 2;">
+                <span class="hero-tag"><i class="fa-solid fa-fire"></i> New Season Arrivals</span>
+                <h1 class="hero-title-main">Curated Essentials for <span>Modern Living</span></h1>
+                <p class="hero-subtitle-main">
+                    Explore high-grade catalog products with direct instant checkout, real-time inventory updates, and premium delivery right to your door.
+                </p>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="#products-catalog" class="btn-hero-white">
+                        <i class="fa-solid fa-bag-shopping"></i> Explore Collection
+                    </a>
+                    <a href="/user/products" class="btn-hero-outline">
+                        <i class="fa-solid fa-store"></i> All Products
+                    </a>
+                </div>
+            </div>
+            <div style="text-align: right; z-index: 2;">
+                <div style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); padding: 2rem; border-radius: var(--radius-xl); backdrop-filter: blur(10px); text-align: center; min-width: 240px;">
+                    <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #a1a1aa; letter-spacing: 0.08em;">Limited Time</span>
+                    <h3 style="font-size: 2.2rem; font-weight: 900; margin: 0.25rem 0;">FLAT 30% OFF</h3>
+                    <p style="font-size: 0.85rem; color: #d4d4d8;">On All Featured Items</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Exclusive Member Deals Grid -->
+        <section class="deals-grid">
+            <div class="deal-card">
+                <div class="deal-icon-box">
+                    <i class="fa-solid fa-fire-flame-curved"></i>
+                </div>
+                <div class="deal-content">
+                    <span class="deal-badge">Hot Deal</span>
+                    <h4>Flat 25% Off Today</h4>
+                    <p>Applied automatically on select featured electronics and apparel.</p>
+                </div>
+            </div>
+
+            <div class="deal-card">
+                <div class="deal-icon-box">
+                    <i class="fa-solid fa-truck-fast"></i>
+                </div>
+                <div class="deal-content">
+                    <span class="deal-badge">Fast Dispatch</span>
+                    <h4>Same-Day Processing</h4>
+                    <p>Instant confirmation with downloadable PDF invoice upon payment.</p>
+                </div>
+            </div>
+
+            <div class="deal-card">
+                <div class="deal-icon-box">
+                    <i class="fa-solid fa-file-invoice"></i>
+                </div>
+                <div class="deal-content">
+                    <span class="deal-badge">Invoices</span>
+                    <h4>GST Compliant Receipts</h4>
+                    <p>Easily access and download all your past tax receipts in one click.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product Catalog Section -->
+        <section id="products-catalog" class="mt-4">
+            <div class="category-nav-wrap">
+                <div class="category-chips">
+                    <a href="/user-dashboard" class="cat-chip {{ 'active' if not selected_category else '' }}">
+                        <i class="fa-solid fa-grid-2"></i> All Products
+                    </a>
+                    {% for cat in categories %}
+                    <a href="/user-dashboard?category={{ cat.category }}" class="cat-chip {{ 'active' if selected_category == cat.category else '' }}">
+                        {{ cat.category }}
+                    </a>
+                    {% endfor %}
+                </div>
+
+                {% if search or selected_category %}
+                <div>
+                    <a href="/user-dashboard" class="btn btn-secondary btn-sm">
+                        <i class="fa-solid fa-xmark"></i> Clear Filters
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Product Cards Grid -->
+            {% if products %}
+            <div class="product-grid">
+                {% for product in products %}
+                <div class="product-card">
+                    <div class="product-card-img-wrap">
+                        {% if product.image %}
+                            <img src="/static/uploads/product_images/{{ product.image }}" alt="{{ product.name }}" class="product-card-img" loading="lazy">
+                        {% else %}
+                            <i class="fa-solid fa-box-open" style="font-size: 3rem; color: #cbd5e1;"></i>
+                        {% endif %}
+                        <span class="product-offer-tag">Special Offer</span>
+                        <span class="product-card-badge">{{ product.category }}</span>
+                    </div>
+
+                    <div class="product-card-body">
+                        <span class="product-cat-pill">{{ product.category }}</span>
+                        <h3 class="product-card-title">{{ product.name }}</h3>
+                        
+                        <div class="product-rating">
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star-half-stroke"></i>
+                            <span style="color: var(--text-muted); font-size: 0.75rem; margin-left: 0.25rem;">(4.8)</span>
+                        </div>
+
+                        <div class="product-card-price-row">
+                            <span class="product-current-price">₹{{ "%.2f"|format(product.price|float) }}</span>
+                            <span class="product-original-price">₹{{ "%.2f"|format((product.price|float) * 1.25) }}</span>
+                        </div>
+
+                        <div class="product-card-actions">
+                            <a href="/user/product/{{ product.product_id }}" class="btn btn-secondary btn-sm flex-1">
+                                <i class="fa-solid fa-eye"></i> Details
+                            </a>
+                            <button type="button" onclick="addToCart('{{ product.product_id }}', event)" class="btn btn-primary btn-sm flex-1">
+                                <i class="fa-solid fa-cart-plus"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-box-open empty-state-icon"></i>
+                <h3>No Products Found</h3>
+                <p>Try modifying your search or exploring another category.</p>
+                <a href="/user-dashboard" class="btn btn-primary">Browse All Products</a>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- Value Proposition Bar -->
+        <section class="value-props-bar">
+            <div class="value-prop-item">
+                <div class="value-prop-icon"><i class="fa-solid fa-truck"></i></div>
+                <div class="value-prop-text">
+                    <h4>Fast & Free Delivery</h4>
+                    <p>On orders above ₹999</p>
+                </div>
+            </div>
+            <div class="value-prop-item">
+                <div class="value-prop-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="value-prop-text">
+                    <h4>100% Genuine</h4>
+                    <p>Direct authentic items</p>
+                </div>
+            </div>
+            <div class="value-prop-item">
+                <div class="value-prop-icon"><i class="fa-solid fa-credit-card"></i></div>
+                <div class="value-prop-text">
+                    <h4>Secure Checkout</h4>
+                    <p>256-bit encrypted Razorpay</p>
+                </div>
+            </div>
+            <div class="value-prop-item">
+                <div class="value-prop-icon"><i class="fa-solid fa-file-invoice"></i></div>
+                <div class="value-prop-text">
+                    <h4>Instant Tax Invoice</h4>
+                    <p>Automated PDF downloads</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toastNotification" class="toast-notification">
+        <i class="fa-solid fa-circle-check" style="color: var(--success); font-size: 1.25rem;"></i>
+        <span id="toastMessage">Item added to cart!</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2026 CartCommerce. All rights reserved.</p>
+            <p>Logged in as <strong>{{ user_name }}</strong></p>
+        </div>
+    </footer>
+
+    <!-- Cart AJAX Helper Script -->
+    <script>
+        function showToast(message) {
+            const toast = document.getElementById('toastNotification');
+            const toastMsg = document.getElementById('toastMessage');
+            if (toast && toastMsg) {
+                toastMsg.innerText = message;
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        function addToCart(productId, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            fetch('/user/add-to-cart-ajax/' + productId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.status === 'success') {
+                    showToast(data.message || 'Item added to cart!');
+                    const badge = document.getElementById('cart-count');
+                    if (badge) {
+                        badge.innerText = data.cart_count;
+                    }
+                } else {
+                    showToast((data && data.message) ? data.message : 'Could not add item to cart');
+                }
+            })
+            .catch(err => {
+                console.error('Add to cart error:', err);
+                showToast('Item added to cart!');
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ product.name }} - Admin View - CartCommerce</title>
+    <!-- FontAwesome & CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- Admin Navigation Bar -->
+    <header class="navbar">
+        <a href="/admin-dashboard" class="brand-logo-custom">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CartCommerce" class="brand-logo-img">
+            <span class="brand-admin-badge">Admin</span>
+        </a>
+        <nav class="nav-links">
+            <a href="/admin-dashboard" class="nav-link"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+            <a href="/admin/item-list" class="nav-link"><i class="fa-solid fa-boxes-stacked"></i> Manage Products</a>
+            <a href="/admin/add-item" class="nav-link"><i class="fa-solid fa-plus-circle"></i> Add Product</a>
+            <a href="/admin/view-items" class="nav-link"><i class="fa-solid fa-grid-2"></i> Catalog View</a>
+            <a href="/admin/profile" class="nav-link"><i class="fa-solid fa-user-gear"></i> Profile</a>
+            <a href="/admin-logout" class="nav-link nav-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+        </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container container-md">
+        <div class="d-flex justify-between align-center mb-3">
+            <a href="/admin/item-list" class="btn btn-secondary btn-sm">
+                <i class="fa-solid fa-arrow-left"></i> Back to Product List
+            </a>
+            <div class="d-flex gap-2">
+                <a href="/admin/update-item/{{ product.product_id }}" class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-pen"></i> Edit Product
+                </a>
+                <a href="/admin/delete-item/{{ product.product_id }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to delete this product?')">
+                    <i class="fa-solid fa-trash"></i> Delete
+                </a>
+            </div>
+        </div>
+
+        <div class="detail-card">
+            <div class="detail-grid">
+                <div class="detail-img-wrap">
+                    {% if product.image %}
+                        <img src="/static/uploads/product_images/{{ product.image }}" class="detail-img" alt="{{ product.name }}">
+                    {% else %}
+                        <div class="text-center" style="color: var(--text-muted);">
+                            <i class="fa-solid fa-image" style="font-size: 3.5rem; margin-bottom: 0.5rem;"></i>
+                            <p>No Image Available</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="detail-info">
+                    <div>
+                        <span class="badge badge-category mb-2">{{ product.category }}</span>
+                        <span class="badge" style="background: var(--surface-alt); color: var(--text-muted); margin-left: 0.5rem;">ID: #{{ product.product_id }}</span>
+                    </div>
+
+                    <h1>{{ product.name }}</h1>
+
+                    <div class="price">
+                        ₹{{ "%.2f"|format(product.price|float) }}
+                    </div>
+
+                    <div class="desc-title"><i class="fa-solid fa-circle-info"></i> Product Description</div>
+                    <p class="desc">{{ product.description }}</p>
+
+                    <hr>
+
+                    <div class="d-flex gap-2 flex-wrap mt-2">
+                        <a href="/admin/update-item/{{ product.product_id }}" class="btn btn-primary">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit Details
+                        </a>
+                        <a href="/user/product/{{ product.product_id }}" target="_blank" class="btn btn-secondary">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i> Preview in Storefront
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>

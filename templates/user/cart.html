@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Cart - CartCommerce</title>
+    <!-- FontAwesome & CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- Customer Navigation Bar -->
+    <header class="navbar">
+        <a href="/user-dashboard" class="brand-logo-custom" title="CartCommerce Dashboard">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CartCommerce" class="brand-logo-img">
+        </a>
+        <nav class="nav-links">
+            <a href="/user-dashboard" class="nav-link"><i class="fa-solid fa-house"></i> Home</a>
+            <a href="/user/products" class="nav-link"><i class="fa-solid fa-store"></i> Browse Products</a>
+            <a href="/user/orders" class="nav-link"><i class="fa-solid fa-box-archive"></i> My Orders</a>
+            <a href="/user/cart" class="nav-link active">
+                <i class="fa-solid fa-cart-shopping"></i> Cart
+                <span class="nav-cart-badge" id="cart-count">{{ cart|length if cart else 0 }}</span>
+            </a>
+            {% if session.get('user_id') %}
+                <a href="/user/profile" class="nav-link"><i class="fa-solid fa-user-circle"></i> Profile</a>
+                <a href="/user-logout" class="nav-link nav-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            {% else %}
+                <a href="/user-login" class="nav-link"><i class="fa-solid fa-arrow-right-to-bracket"></i> Login</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+                <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-circle-exclamation' }} alert-icon"></i>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="page-header">
+            <div class="page-title-group">
+                <h2><i class="fa-solid fa-cart-shopping"></i> Your Shopping Cart</h2>
+                <p>Select specific items to purchase now, update quantities, or proceed to checkout.</p>
+            </div>
+            <a href="/user/products" class="btn btn-secondary btn-sm">
+                <i class="fa-solid fa-arrow-left"></i> Continue Shopping
+            </a>
+        </div>
+
+        {% if not cart %}
+            <div class="empty-state">
+                <i class="fa-solid fa-cart-arrow-down empty-state-icon"></i>
+                <h3>Your Cart is Empty</h3>
+                <p>Looks like you haven't added any items to your shopping cart yet.</p>
+                <a href="/user/products" class="btn btn-primary btn-lg">
+                    <i class="fa-solid fa-bag-shopping"></i> Start Shopping Now
+                </a>
+            </div>
+        {% else %}
+            <!-- Form wrapping selected cart items to buy -->
+            <form id="cartCheckoutForm" method="POST" action="/user/pay">
+                <!-- Selection Toolbar -->
+                <div class="cart-selection-bar">
+                    <label class="cart-select-label" for="masterSelectAll">
+                        <input type="checkbox" id="masterSelectAll" class="cart-custom-checkbox" onchange="toggleSelectAll(this)" checked>
+                        <span>Select All (<span id="totalCartItemsCount">{{ cart|length }}</span> items in cart)</span>
+                    </label>
+                    <div class="d-flex gap-2 align-center">
+                        <button type="button" onclick="setSelectAll(true)" class="btn btn-secondary btn-sm">
+                            <i class="fa-solid fa-check-double"></i> Select All
+                        </button>
+                        <button type="button" onclick="setSelectAll(false)" class="btn btn-secondary btn-sm">
+                            <i class="fa-solid fa-xmark"></i> Deselect All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="cart-layout">
+                    <!-- Cart Items Table -->
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 48px; text-align: center;">
+                                        <input type="checkbox" id="headerCheckbox" class="cart-custom-checkbox" onchange="toggleSelectAll(this)" checked title="Select / Deselect All">
+                                    </th>
+                                    <th style="width: 70px;">Item</th>
+                                    <th>Description</th>
+                                    <th>Price</th>
+                                    <th style="text-align: center;">Quantity</th>
+                                    <th>Subtotal</th>
+                                    <th style="text-align: center;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pid, item in cart.items() %}
+                                <tr id="row-{{ pid }}">
+                                    <td style="text-align: center;">
+                                        <input type="checkbox" 
+                                               name="selected_items" 
+                                               value="{{ pid }}" 
+                                               class="cart-custom-checkbox cart-item-checkbox" 
+                                               data-pid="{{ pid }}" 
+                                               data-price="{{ item.price }}" 
+                                               data-qty="{{ item.quantity }}" 
+                                               onchange="updateSelectionSummary()" 
+                                               checked>
+                                    </td>
+                                    <td>
+                                        {% if item.image %}
+                                            <img src="/static/uploads/product_images/{{ item.image }}" class="table-img" alt="{{ item.name }}">
+                                        {% else %}
+                                            <div class="img-placeholder"><i class="fa-solid fa-image"></i></div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ item.name }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="price-tag">₹{{ "%.2f"|format(item.price|float) }}</span>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <div class="qty-control">
+                                            <a href="/user/cart/decrease/{{ pid }}" class="qty-btn" title="Decrease quantity">
+                                                <i class="fa-solid fa-minus" style="font-size: 0.75rem;"></i>
+                                            </a>
+                                            <span class="qty-value">{{ item.quantity }}</span>
+                                            <a href="/user/cart/increase/{{ pid }}" class="qty-btn" title="Increase quantity">
+                                                <i class="fa-solid fa-plus" style="font-size: 0.75rem;"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="price-tag" style="color: var(--primary);">₹{{ "%.2f"|format((item.price * item.quantity)|float) }}</span>
+                                    </td>
+                                    <td style="text-align: center; white-space: nowrap;">
+                                        <div class="d-flex gap-1 justify-center align-center">
+                                            <a href="/user/pay?selected={{ pid }}" class="btn btn-primary btn-sm" style="padding: 0.35rem 0.65rem; font-size: 0.78rem; font-weight: 600;" title="Buy this product only">
+                                                <i class="fa-solid fa-bolt"></i> Buy
+                                            </a>
+                                            <a href="/user/cart/remove/{{ pid }}" class="btn btn-outline-danger btn-sm" style="padding: 0.35rem 0.55rem;" title="Remove item">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Order Summary Sidebar -->
+                    <div class="cart-summary-card">
+                        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-main); margin-bottom: 1.25rem;">
+                            <i class="fa-solid fa-receipt" style="color: var(--primary);"></i> Order Summary
+                        </h3>
+                        
+                        <div class="cart-summary-row">
+                            <span>Selected Items:</span>
+                            <strong id="summarySelectedCount" style="color: var(--text-main);">{{ cart|length }} of {{ cart|length }}</strong>
+                        </div>
+
+                        <div class="cart-summary-row">
+                            <span>Selected Subtotal:</span>
+                            <span id="summarySubtotal" style="font-weight: 700; color: var(--text-main);">₹{{ "%.2f"|format(grand_total|float) }}</span>
+                        </div>
+
+                        <div class="cart-summary-row">
+                            <span>Standard Delivery:</span>
+                            <span style="color: var(--success); font-weight: 700;">FREE</span>
+                        </div>
+
+                        <div class="cart-summary-row">
+                            <span>GST & Taxes:</span>
+                            <span>Included</span>
+                        </div>
+
+                        <div class="cart-summary-total">
+                            <span>Grand Total:</span>
+                            <span id="summaryGrandTotal">₹{{ "%.2f"|format(grand_total|float) }}</span>
+                        </div>
+
+                        <button type="submit" id="checkoutBtn" class="btn btn-primary btn-block btn-lg mt-3 btn-checkout">
+                            <i class="fa-solid fa-lock"></i> <span id="checkoutBtnText">Proceed to Pay (<span id="btnItemsCount">{{ cart|length }}</span> items)</span>
+                        </button>
+
+                        <p id="selectionWarning" style="color: var(--danger); font-size: 0.84rem; text-align: center; margin-top: 0.6rem; display: none; font-weight: 600;">
+                            <i class="fa-solid fa-circle-exclamation"></i> Please select at least one item to checkout.
+                        </p>
+
+                        <div class="text-center mt-3" style="color: var(--text-muted); font-size: 0.82rem;">
+                            <i class="fa-solid fa-shield-check" style="color: var(--success);"></i> 100% Secure Razorpay Checkout
+                        </div>
+                    </div>
+                </div>
+            </form>
+        {% endif %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2026 CartCommerce. All rights reserved.</p>
+            <div class="d-flex gap-2">
+                <span><i class="fa-solid fa-lock"></i> SSL Secured</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Selection Helper Script -->
+    <script>
+    function updateSelectionSummary() {
+        const checkboxes = document.querySelectorAll('.cart-item-checkbox');
+        const masterCb = document.getElementById('masterSelectAll');
+        const headerCb = document.getElementById('headerCheckbox');
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        const warning = document.getElementById('selectionWarning');
+
+        let selectedCount = 0;
+        let selectedTotal = 0.0;
+        const totalItems = checkboxes.length;
+
+        checkboxes.forEach(cb => {
+            if (cb.checked) {
+                selectedCount++;
+                const price = parseFloat(cb.getAttribute('data-price')) || 0;
+                const qty = parseInt(cb.getAttribute('data-qty')) || 1;
+                selectedTotal += (price * qty);
+            }
+        });
+
+        // Update counts and prices in UI
+        const selectedCountEl = document.getElementById('summarySelectedCount');
+        if (selectedCountEl) {
+            selectedCountEl.innerText = `${selectedCount} of ${totalItems}`;
+        }
+
+        const subtotalEl = document.getElementById('summarySubtotal');
+        if (subtotalEl) {
+            subtotalEl.innerText = `₹${selectedTotal.toFixed(2)}`;
+        }
+
+        const grandTotalEl = document.getElementById('summaryGrandTotal');
+        if (grandTotalEl) {
+            grandTotalEl.innerText = `₹${selectedTotal.toFixed(2)}`;
+        }
+
+        const btnCountEl = document.getElementById('btnItemsCount');
+        if (btnCountEl) {
+            btnCountEl.innerText = selectedCount;
+        }
+
+        // Master checkbox state
+        const allChecked = (selectedCount === totalItems && totalItems > 0);
+        if (masterCb) masterCb.checked = allChecked;
+        if (headerCb) headerCb.checked = allChecked;
+
+        // Button enabled/disabled state
+        if (selectedCount === 0) {
+            if (checkoutBtn) {
+                checkoutBtn.disabled = true;
+                checkoutBtn.classList.add('disabled');
+            }
+            if (warning) warning.style.display = 'block';
+        } else {
+            if (checkoutBtn) {
+                checkoutBtn.disabled = false;
+                checkoutBtn.classList.remove('disabled');
+            }
+            if (warning) warning.style.display = 'none';
+        }
+    }
+
+    function toggleSelectAll(source) {
+        const isChecked = source.checked;
+        const checkboxes = document.querySelectorAll('.cart-item-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = isChecked;
+        });
+        const masterCb = document.getElementById('masterSelectAll');
+        const headerCb = document.getElementById('headerCheckbox');
+        if (masterCb) masterCb.checked = isChecked;
+        if (headerCb) headerCb.checked = isChecked;
+        updateSelectionSummary();
+    }
+
+    function setSelectAll(status) {
+        const checkboxes = document.querySelectorAll('.cart-item-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = status;
+        });
+        const masterCb = document.getElementById('masterSelectAll');
+        const headerCb = document.getElementById('headerCheckbox');
+        if (masterCb) masterCb.checked = status;
+        if (headerCb) headerCb.checked = status;
+        updateSelectionSummary();
+    }
+
+    // Run initial calculation on page load
+    document.addEventListener('DOMContentLoaded', updateSelectionSummary);
+    </script>
+
+</body>
+</html>

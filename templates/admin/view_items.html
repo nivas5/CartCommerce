@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Products View - Admin - CartCommerce</title>
+    <!-- FontAwesome & CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- Admin Navigation Bar -->
+    <header class="navbar">
+        <a href="/admin-dashboard" class="brand-logo-custom">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CartCommerce" class="brand-logo-img">
+            <span class="brand-admin-badge">Admin</span>
+        </a>
+        <nav class="nav-links">
+            <a href="/admin-dashboard" class="nav-link"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+            <a href="/admin/item-list" class="nav-link"><i class="fa-solid fa-boxes-stacked"></i> Manage Products</a>
+            <a href="/admin/add-item" class="nav-link"><i class="fa-solid fa-plus-circle"></i> Add Product</a>
+            <a href="/admin/view-items" class="nav-link active"><i class="fa-solid fa-grid-2"></i> Catalog View</a>
+            <a href="/admin/profile" class="nav-link"><i class="fa-solid fa-user-gear"></i> Profile</a>
+            <a href="/admin-logout" class="nav-link nav-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+        </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+                <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-circle-exclamation' }} alert-icon"></i>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="page-header">
+            <div class="page-title-group">
+                <h2><i class="fa-solid fa-table-list"></i> Full Product Catalog</h2>
+                <p>Complete directory of all items uploaded into CartCommerce.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/admin/add-item" class="btn btn-primary">
+                    <i class="fa-solid fa-plus"></i> Add Product
+                </a>
+                <a href="/admin/item-list" class="btn btn-secondary">
+                    <i class="fa-solid fa-filter"></i> Search & Filter View
+                </a>
+            </div>
+        </div>
+
+        {% if products %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">ID</th>
+                        <th style="width: 90px;">Image</th>
+                        <th>Product Title</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Description</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in products %}
+                    <tr>
+                        <td><strong>#{{ item.product_id }}</strong></td>
+                        <td>
+                            {% if item.image %}
+                                <img src="/static/uploads/product_images/{{ item.image }}" class="table-img" alt="{{ item.name }}">
+                            {% else %}
+                                <div class="img-placeholder"><i class="fa-solid fa-image"></i></div>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ item.name }}</strong></td>
+                        <td><span class="badge badge-category">{{ item.category }}</span></td>
+                        <td><span class="price-tag">₹{{ "%.2f"|format(item.price|float) }}</span></td>
+                        <td>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                {{ item.description }}
+                            </p>
+                        </td>
+                        <td style="text-align: right;">
+                            <div class="table-actions" style="justify-content: flex-end;">
+                                <a href="/admin/view-item/{{ item.product_id }}" class="btn btn-secondary btn-sm" title="View">
+                                    <i class="fa-solid fa-eye"></i>
+                                </a>
+                                <a href="/admin/update-item/{{ item.product_id }}" class="btn btn-outline-primary btn-sm" title="Edit">
+                                    <i class="fa-solid fa-pen"></i>
+                                </a>
+                                <a href="/admin/delete-item/{{ item.product_id }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure?')" title="Delete">
+                                    <i class="fa-solid fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fa-solid fa-box-open empty-state-icon"></i>
+            <h3>No Products Found</h3>
+            <p>Your store doesn't have any products uploaded yet.</p>
+            <a href="/admin/add-item" class="btn btn-primary">
+                <i class="fa-solid fa-plus"></i> Add New Product
+            </a>
+        </div>
+        {% endif %}
+    </main>
+
+</body>
+</html>

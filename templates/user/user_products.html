@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Store Catalog - CartCommerce</title>
+    <!-- FontAwesome & CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Toast notification */
+        .toast-notification {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-xl);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .toast-notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Customer Navigation Bar -->
+    <header class="navbar">
+        <a href="/user-dashboard" class="brand-logo-custom" title="CartCommerce Dashboard">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CartCommerce" class="brand-logo-img">
+        </a>
+        <nav class="nav-links">
+            <a href="/user-dashboard" class="nav-link"><i class="fa-solid fa-house"></i> Home</a>
+            <a href="/user/products" class="nav-link active"><i class="fa-solid fa-store"></i> Browse Products</a>
+            <a href="/user/orders" class="nav-link"><i class="fa-solid fa-box-archive"></i> My Orders</a>
+            <a href="/user/cart" class="nav-link">
+                <i class="fa-solid fa-cart-shopping"></i> Cart
+                <span class="nav-cart-badge" id="cart-count">{{ session.get('cart')|length if session.get('cart') else 0 }}</span>
+            </a>
+            {% if session.get('user_id') %}
+                <a href="/user/profile" class="nav-link"><i class="fa-solid fa-user-circle"></i> Profile</a>
+                <a href="/user-logout" class="nav-link nav-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            {% else %}
+                <a href="/user-login" class="nav-link"><i class="fa-solid fa-arrow-right-to-bracket"></i> Login</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+                <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-circle-exclamation' }} alert-icon"></i>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Header -->
+        <div class="page-header">
+            <div class="page-title-group">
+                <h2><i class="fa-solid fa-bag-shopping"></i> Explore Products</h2>
+                <p>Discover our wide selection of high quality goods with instant checkout.</p>
+            </div>
+            <div>
+                <a href="/user/cart" class="btn btn-primary">
+                    <i class="fa-solid fa-cart-shopping"></i> View Cart (<span id="cart-count-btn">{{ session.get('cart')|length if session.get('cart') else 0 }}</span>)
+                </a>
+            </div>
+        </div>
+
+        <!-- Combined Search & Category Filter Toolbar -->
+        <div class="toolbar-card">
+            <form method="GET" action="/user/products" class="filter-form">
+                <div class="search-input-wrap">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" name="search" class="form-control" placeholder="Search by name or keyword..." value="{{ request.args.get('search', '') }}">
+                </div>
+
+                <div class="filter-select">
+                    <select name="category" class="form-control">
+                        <option value="">All Categories</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.category }}" {% if request.args.get('category') == cat.category %} selected {% endif %}>
+                            {{ cat.category }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-filter"></i> Search & Filter
+                </button>
+
+                {% if request.args.get('search') or request.args.get('category') %}
+                    <a href="/user/products" class="btn btn-secondary">
+                        <i class="fa-solid fa-xmark"></i> Clear
+                    </a>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Products Grid -->
+        {% if products %}
+        <div class="product-grid">
+            {% for product in products %}
+            <div class="product-card">
+                <div class="product-card-img-wrap">
+                    {% if product.image %}
+                        <img src="/static/uploads/product_images/{{ product.image }}" class="product-card-img" alt="{{ product.name }}">
+                    {% else %}
+                        <div style="color: var(--text-muted); text-align: center;">
+                            <i class="fa-solid fa-image" style="font-size: 2.5rem; margin-bottom: 0.25rem;"></i>
+                            <p style="font-size: 0.8rem;">No Image</p>
+                        </div>
+                    {% endif %}
+                    <span class="product-offer-tag">Special Offer</span>
+                    <span class="product-card-badge">{{ product.category }}</span>
+                </div>
+
+                <div class="product-card-body">
+                    <span class="product-cat-pill">{{ product.category }}</span>
+                    <h3 class="product-card-title">
+                        <a href="/user/product/{{ product.product_id }}">{{ product.name }}</a>
+                    </h3>
+                    <div class="product-rating">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star-half-stroke"></i>
+                        <span style="color: var(--text-muted); font-size: 0.75rem; margin-left: 0.25rem;">(4.8)</span>
+                    </div>
+                    <div class="product-card-price-row">
+                        <span class="product-current-price">₹{{ "%.2f"|format(product.price|float) }}</span>
+                        <span class="product-original-price">₹{{ "%.2f"|format((product.price|float) * 1.25) }}</span>
+                    </div>
+
+                    <div class="product-card-actions">
+                        <a href="/user/product/{{ product.product_id }}" class="btn btn-secondary btn-sm flex-1" title="View details">
+                            <i class="fa-solid fa-eye"></i> Details
+                        </a>
+                        <button type="button" onclick="addToCart('{{ product.product_id }}', event)" class="btn btn-primary btn-sm flex-1" title="Add to Cart">
+                            <i class="fa-solid fa-cart-plus"></i> Add
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fa-solid fa-magnifying-glass empty-state-icon"></i>
+            <h3>No Products Found</h3>
+            <p>We couldn't find any products matching your search criteria. Try a different search term or category.</p>
+            <a href="/user/products" class="btn btn-primary">
+                <i class="fa-solid fa-rotate-left"></i> View All Products
+            </a>
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast-notification">
+        <i class="fa-solid fa-circle-check" style="color: var(--success); font-size: 1.25rem;"></i>
+        <span id="toast-message">Item added to cart!</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2026 CartCommerce. All rights reserved.</p>
+            <div class="d-flex gap-2">
+                <span><i class="fa-solid fa-shield-halved"></i> 100% Secure Checkout</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- AJAX Add to Cart Script -->
+    <script>
+    function showToast(message) {
+        const toast = document.getElementById("toast");
+        const toastMsg = document.getElementById("toast-message");
+        if (toast && toastMsg) {
+            toastMsg.innerText = message;
+            toast.classList.add("show");
+            setTimeout(() => {
+                toast.classList.remove("show");
+            }, 3000);
+        }
+    }
+
+    function addToCart(productId, event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        fetch(`/user/add-to-cart-ajax/${productId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (response.status === 401) {
+                window.location.href = '/user-login';
+                return;
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data) return;
+
+            // Update cart count badges
+            const cartBadge = document.getElementById("cart-count");
+            if (cartBadge) {
+                cartBadge.innerText = data.cart_count;
+            }
+            const cartBadgeBtn = document.getElementById("cart-count-btn");
+            if (cartBadgeBtn) {
+                cartBadgeBtn.innerText = data.cart_count;
+            }
+
+            // Show toast
+            showToast(data.message || "Added to cart!");
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            showToast("Added to cart!");
+        });
+    }
+    </script>
+
+</body>
+</html>

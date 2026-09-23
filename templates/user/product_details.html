@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ product.name }} - CartCommerce</title>
+    <!-- FontAwesome & CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .toast-notification {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-xl);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .toast-notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Customer Navigation Bar -->
+    <header class="navbar">
+        <a href="/user-dashboard" class="brand-logo-custom" title="CartCommerce Dashboard">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CartCommerce" class="brand-logo-img">
+        </a>
+        <nav class="nav-links">
+            <a href="/user-dashboard" class="nav-link"><i class="fa-solid fa-house"></i> Home</a>
+            <a href="/user/products" class="nav-link"><i class="fa-solid fa-store"></i> Browse Products</a>
+            <a href="/user/orders" class="nav-link"><i class="fa-solid fa-box-archive"></i> My Orders</a>
+            <a href="/user/cart" class="nav-link">
+                <i class="fa-solid fa-cart-shopping"></i> Cart
+                <span class="nav-cart-badge" id="cart-count">{{ session.get('cart')|length if session.get('cart') else 0 }}</span>
+            </a>
+            {% if session.get('user_id') %}
+                <a href="/user/profile" class="nav-link"><i class="fa-solid fa-user-circle"></i> Profile</a>
+                <a href="/user-logout" class="nav-link nav-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            {% else %}
+                <a href="/user-login" class="nav-link"><i class="fa-solid fa-arrow-right-to-bracket"></i> Login</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container container-md">
+        <!-- Navigation breadcrumb -->
+        <div class="d-flex justify-between align-center mb-3">
+            <a href="/user/products" class="btn btn-secondary btn-sm">
+                <i class="fa-solid fa-arrow-left"></i> Back to Products
+            </a>
+            <a href="/user/cart" class="btn btn-outline-primary btn-sm">
+                <i class="fa-solid fa-cart-shopping"></i> Go to Cart
+            </a>
+        </div>
+
+        <div class="detail-card">
+            <div class="detail-grid">
+                <!-- Product Image Gallery -->
+                <div class="detail-img-wrap">
+                    {% if product.image %}
+                        <img src="/static/uploads/product_images/{{ product.image }}" class="detail-img" alt="{{ product.name }}">
+                    {% else %}
+                        <div class="text-center" style="color: var(--text-muted);">
+                            <i class="fa-solid fa-image" style="font-size: 3.5rem; margin-bottom: 0.5rem;"></i>
+                            <p>No Image Available</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Product Information -->
+                <div class="detail-info">
+                    <div>
+                        <span class="badge badge-category mb-2">{{ product.category }}</span>
+                    </div>
+
+                    <h1>{{ product.name }}</h1>
+
+                    <div class="price">
+                        ₹{{ "%.2f"|format(product.price|float) }}
+                    </div>
+
+                    <div class="desc-title"><i class="fa-solid fa-align-left"></i> Product Overview</div>
+                    <p class="desc">{{ product.description }}</p>
+
+                    <div class="detail-actions">
+                        <button type="button" onclick="addToCart('{{ product.product_id }}', event)" class="btn btn-primary btn-lg">
+                            <i class="fa-solid fa-cart-plus"></i> Add to Cart
+                        </button>
+                        <a href="/user/cart" class="btn btn-secondary btn-lg">
+                            <i class="fa-solid fa-bag-shopping"></i> View Cart
+                        </a>
+                    </div>
+
+                    <hr class="mt-4 mb-3">
+
+                    <div class="d-flex gap-3" style="color: var(--text-muted); font-size: 0.88rem;">
+                        <span><i class="fa-solid fa-truck-fast" style="color: var(--primary);"></i> Fast Dispatch</span>
+                        <span><i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> Quality Guaranteed</span>
+                        <span><i class="fa-solid fa-file-invoice" style="color: var(--primary);"></i> GST Invoice</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast-notification">
+        <i class="fa-solid fa-circle-check" style="color: var(--success); font-size: 1.25rem;"></i>
+        <span id="toast-message">Added to cart!</span>
+    </div>
+
+    <!-- AJAX Script -->
+    <script>
+    function showToast(message) {
+        const toast = document.getElementById("toast");
+        const toastMsg = document.getElementById("toast-message");
+        if (toast && toastMsg) {
+            toastMsg.innerText = message;
+            toast.classList.add("show");
+            setTimeout(() => {
+                toast.classList.remove("show");
+            }, 3000);
+        }
+    }
+
+    function addToCart(productId, event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        fetch(`/user/add-to-cart-ajax/${productId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (response.status === 401) {
+                window.location.href = '/user-login';
+                return;
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data) return;
+
+            // Update cart count
+            const cartBadge = document.getElementById("cart-count");
+            if (cartBadge) {
+                cartBadge.innerText = data.cart_count;
+            }
+
+            // Show toast
+            showToast(data.message || "Added to cart!");
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            showToast("Added to cart!");
+        });
+    }
+    </script>
+
+</body>
+</html>

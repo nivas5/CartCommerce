@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Products - Admin - CartCommerce</title>
+    <!-- FontAwesome & CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- Admin Navigation Bar -->
+    <header class="navbar">
+        <a href="/admin-dashboard" class="brand-logo-custom">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CartCommerce" class="brand-logo-img">
+            <span class="brand-admin-badge">Admin</span>
+        </a>
+        <nav class="nav-links">
+            <a href="/admin-dashboard" class="nav-link"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+            <a href="/admin/item-list" class="nav-link active"><i class="fa-solid fa-boxes-stacked"></i> Manage Products</a>
+            <a href="/admin/add-item" class="nav-link"><i class="fa-solid fa-plus-circle"></i> Add Product</a>
+            <a href="/admin/view-items" class="nav-link"><i class="fa-solid fa-grid-2"></i> Catalog View</a>
+            <a href="/admin/profile" class="nav-link"><i class="fa-solid fa-user-gear"></i> Profile</a>
+            <a href="/admin-logout" class="nav-link nav-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+        </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+                <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-circle-exclamation' }} alert-icon"></i>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Header -->
+        <div class="page-header">
+            <div class="page-title-group">
+                <h2><i class="fa-solid fa-boxes-stacked"></i> Product Inventory</h2>
+                <p>Filter, view, edit, or delete items in your store repository.</p>
+            </div>
+            <a href="/admin/add-item" class="btn btn-primary">
+                <i class="fa-solid fa-plus"></i> Add New Product
+            </a>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="toolbar-card">
+            <form method="GET" action="/admin/item-list" class="filter-form">
+                <div class="search-input-wrap">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" name="search" class="form-control" placeholder="Search by product name or keyword..." value="{{ search or '' }}">
+                </div>
+
+                <div class="filter-select">
+                    <select name="category" class="form-control">
+                        <option value="">All Categories</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.category }}" {% if selected_category == cat.category %} selected {% endif %}>
+                            {{ cat.category }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-filter"></i> Apply Filter
+                </button>
+
+                {% if search or selected_category %}
+                    <a href="/admin/item-list" class="btn btn-secondary">
+                        <i class="fa-solid fa-xmark"></i> Clear
+                    </a>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Products Table -->
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 70px;">ID</th>
+                        <th style="width: 80px;">Image</th>
+                        <th>Product Details</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td><strong>#{{ product.product_id }}</strong></td>
+                        <td>
+                            {% if product.image %}
+                                <img src="/static/uploads/product_images/{{ product.image }}" class="table-img" alt="{{ product.name }}">
+                            {% else %}
+                                <div class="img-placeholder"><i class="fa-solid fa-image"></i></div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong style="font-size: 0.98rem;">{{ product.name }}</strong>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                {{ product.description }}
+                            </p>
+                        </td>
+                        <td>
+                            <span class="badge badge-category">{{ product.category }}</span>
+                        </td>
+                        <td>
+                            <span class="price-tag">₹{{ "%.2f"|format(product.price|float) }}</span>
+                        </td>
+                        <td style="text-align: right;">
+                            <div class="table-actions" style="justify-content: flex-end;">
+                                <a href="/admin/view-item/{{ product.product_id }}" class="btn btn-secondary btn-sm" title="View details">
+                                    <i class="fa-solid fa-eye"></i> View
+                                </a>
+                                <a href="/admin/update-item/{{ product.product_id }}" class="btn btn-outline-primary btn-sm" title="Edit product">
+                                    <i class="fa-solid fa-pen-to-square"></i> Edit
+                                </a>
+                                <a href="/admin/delete-item/{{ product.product_id }}" 
+                                   class="btn btn-outline-danger btn-sm"
+                                   onclick="return confirm('Are you sure you want to permanently delete this product?')"
+                                   title="Delete product">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state" style="border: none; margin: 0; padding: 3rem 1rem;">
+                                <i class="fa-solid fa-box-open empty-state-icon"></i>
+                                <h3>No Products Found</h3>
+                                <p>No items matched your current filter criteria or the inventory is empty.</p>
+                                <a href="/admin/add-item" class="btn btn-primary">
+                                    <i class="fa-solid fa-plus"></i> Add First Product
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+</body>
+</html>

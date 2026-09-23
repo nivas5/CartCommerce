@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - CartCommerce</title>
+    <!-- FontAwesome & CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- Admin Navigation Bar -->
+    <header class="navbar">
+        <a href="/admin-dashboard" class="brand-logo-custom" title="CartCommerce Administration">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CartCommerce" class="brand-logo-img">
+            <span class="brand-admin-badge">Admin</span>
+        </a>
+        <nav class="nav-links">
+            <a href="/admin-dashboard" class="nav-link active"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+            <a href="/admin/item-list" class="nav-link"><i class="fa-solid fa-boxes-stacked"></i> Manage Products</a>
+            <a href="/admin/add-item" class="nav-link"><i class="fa-solid fa-plus-circle"></i> Add Product</a>
+            <a href="/admin/view-items" class="nav-link"><i class="fa-solid fa-table-cells-large"></i> Catalog View</a>
+            <a href="/admin/profile" class="nav-link"><i class="fa-solid fa-user-gear"></i> Profile</a>
+            <a href="/admin-logout" class="nav-link nav-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+        </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+                <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-circle-exclamation' }} alert-icon"></i>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Welcome Banner -->
+        <div class="page-header">
+            <div class="page-title-group">
+                <h2><i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> Welcome back, {{ admin_name }}</h2>
+                <p>Overview of your store inventory, categories, and administrative quick controls.</p>
+            </div>
+            <div>
+                <a href="/admin/add-item" class="btn btn-primary">
+                    <i class="fa-solid fa-plus"></i> Add New Product
+                </a>
+            </div>
+        </div>
+
+        <!-- Metrics / Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon primary">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Total Products</h3>
+                    <div class="stat-value">{{ stats.total_products if stats else 0 }}</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon purple">
+                    <i class="fa-solid fa-tags"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Active Categories</h3>
+                    <div class="stat-value">{{ stats.total_categories if stats else 0 }}</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon success">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Store Status</h3>
+                    <div class="stat-value" style="font-size: 1.35rem; color: var(--success);">Live & Active</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Navigation Action Cards -->
+        <div class="mb-3">
+            <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.25rem;">Administrative Controls</h3>
+            <p style="color: var(--text-muted); font-size: 0.92rem;">Quick shortcuts to manage your store catalog and administrative settings.</p>
+        </div>
+
+        <div class="quick-actions-grid">
+            <a href="/admin/add-item" class="action-card">
+                <div class="action-card-icon">
+                    <i class="fa-solid fa-plus"></i>
+                </div>
+                <div class="action-card-text">
+                    <h4>Add New Product</h4>
+                    <p>Create a fresh item listing with photos, category, pricing, and description.</p>
+                </div>
+            </a>
+
+            <a href="/admin/item-list" class="action-card">
+                <div class="action-card-icon">
+                    <i class="fa-solid fa-list-check"></i>
+                </div>
+                <div class="action-card-text">
+                    <h4>Manage Inventory</h4>
+                    <p>Search, filter, update details, adjust prices, or remove items from the catalog.</p>
+                </div>
+            </a>
+
+            <a href="/admin/view-items" class="action-card">
+                <div class="action-card-icon">
+                    <i class="fa-solid fa-table-cells-large"></i>
+                </div>
+                <div class="action-card-text">
+                    <h4>Catalog View</h4>
+                    <p>Review comprehensive product grid with real-time thumbnail previews.</p>
+                </div>
+            </a>
+
+            <a href="/admin/profile" class="action-card">
+                <div class="action-card-icon">
+                    <i class="fa-solid fa-user-gear"></i>
+                </div>
+                <div class="action-card-text">
+                    <h4>Admin Profile</h4>
+                    <p>Update administrator credentials, change passwords, and manage account details.</p>
+                </div>
+            </a>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2026 CartCommerce Administration. All rights reserved.</p>
+            <p>Logged in as <strong>{{ admin_name }}</strong></p>
+        </div>
+    </footer>
+
+</body>
+</html>
